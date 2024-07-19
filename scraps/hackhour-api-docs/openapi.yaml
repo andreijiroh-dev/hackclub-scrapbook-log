@@ -1,19 +1,33 @@
 openapi: "3.1.0"
 info:
   title: Hack Hour API
-  version: 1.0.0
+  version: 3.0.0
   description: |-
-    This is an unofficial API docs behind [Heidi the Hakkuun](https://github.com/hackclub/hack-hour), the Hack Club Slack bot that runs the `#arcade` channel for Summer of Making 2024 edition, built as part of Arcade 2024.
+    This is an unofficial API docs behind [Heidi the Hakkuun](https://github.com/hackclub/hack-hour),
+    the Hack Club Slack bot that runs the `#arcade` channel for Summer of Making 2024 edition, built as part of Arcade 2024.
 
     ## Important note about API usage
 
     _This section is copied from upstream's README for brevity._
 
-    There is no guarantee for the reliability of the API. If data is lost and/or is not registered for Arcade, there's not much we can do - use at your own risk.
+    There is no guarantee for the reliability of the API. If data is lost and/or
+    is not registered for Arcade, there's not much we can do - use at your own risk.
 
-    ## Getting your API token
+    ## Using the API
 
-    In any Hack Club channel, especially on `#arcade`, send `/api` to get (or rotate) your API token. The token is formatted like a UUID.
+    ### Getting an API token
+
+    In any Hack Club channel, especially on `#arcade`, send `/api` to get (or rotate) your Hack Club API token. The token is formatted like a
+    UUID, like this: `b687bd17-d3ae-4768-a280-e1f55ee02b05` (this is not a real token if anyone tried to use this)
+
+    You must keep your API token secret as if it is your account password.
+
+    ### Finding your Slack user ID
+
+    * **Desktop and Web**: Go to your profile, click the options icon (three dots)
+    and select `Copy member ID`
+    * **Mobile**: Send a message in [`#what-is-my-slack-id`](https://hackclub.slack.com/archives/C0159TSJVH8) channel and you should receive a
+    automated reply with your Slack user ID.
   contact:
     name: Andrei Jiroh Halili
     url: https://scrapbook.hackclub.com/andreijiroh-dev
@@ -26,10 +40,13 @@ externalDocs:
   description: Learn more about Hack Club Arcade
   url: https://hackclub.com/arcade
 servers:
-  - url: "https://hackhour.hackclub.com/api"
+  - url: "https://hackhour.hackclub.com"
 tags:
 - name: sessions
   description: Operations relating to viewing and managing your Arcade sessions over API.
+  externalDocs: 
+    description: Read the constitution
+    url: "https://github.com/hackclub/arcade-constitution/blob/main/README.md"
 - name: meta
   description: "Operations relating to "
 components:
@@ -75,6 +92,7 @@ components:
           $ref: '#/components/schemas/ArcadeGoal/properties/name'
         work:
           type: string
+          description: What the user is working on
         paused:
           type: boolean
           default: true
@@ -83,7 +101,6 @@ components:
           default: false
         messageTs:
           type: string
-          default: "todo"
     ArcadeStats:
       type: object
       properties:
@@ -93,12 +110,11 @@ components:
         total:
           type: number
           default: 0
-    # API responses
     ArcadeSessions:
       type: array
       items:
         type: object
-        properties:
+        schemas:
           $ref: "#/components/schemas/ArcadeSession/properties"
     ArcadeGoals:
       type: array
@@ -121,8 +137,17 @@ components:
         slackConnected:
           type: boolean
           default: true
+    ApiErrorMessage:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          default: false
+        error:
+          type: string
+          description: The error message
 paths:
-  /session/{slackId}:
+  /api/session/{slackId}:
     get:
       security:
         - hackHourApiToken: []
@@ -150,7 +175,19 @@ paths:
                     default: true
                   data:
                     $ref: '#/components/schemas/ArcadeSession'
-  /stats/{slackId}:
+        401:
+          description: "API token is missing"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schema/ApiErrorMessage"
+        404:
+          description: "User not found"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schema/ApiErrorMessage"
+  /api/stats/{slackId}:
     get:
       tags: ["sessions"]
       security:
@@ -177,10 +214,117 @@ paths:
                     default: true
                   data:
                     $ref: "#/components/schemas/ArcadeStats"
+        401:
+          description: "API token is missing"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schema/ApiErrorMessage"
+        404:
+          description: "User not found"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schema/ApiErrorMessage"
+  /api/goals/{slackId}:
+    get:
+      tags: ["sessions"]
+      summary: "Gets the goals for the user."
+      description: |-
+        Currently you can only manage your goals within the session threads on Slack at the moment by clicking **Change Goals** on the bot's first reply in `#arcade` and either clicking `new goal` or `delete goal`.
+      parameters:
+        - name: slackId
+          in: path
+          description: "Slack user ID"
+          required: true
+          schema:
+            type: string
+      security:
+        - hackHourApiToken: []
+      responses:
+        200:
+          description: Returns a list of goals for a user.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    default: true
+                  data:
+                    $ref: "#/components/schemas/ArcadeGoals"
+        401:
+          description: "API token is missing"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schema/ApiErrorMessage"
+        404:
+          description: "User not found"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schema/ApiErrorMessage"
+  /api/start/{slackId}:
+    post:
+      operationId: startArcadeSession
+      tags: ["sessions"]
+      summary: Start a Arcade session
+      parameters:
+        - name: slackId
+          in: path
+          description: "Slack user ID"
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                work:
+                  type: string
+                  description: "What the user is working on"
+      responses:
+        200:
+          description: Returns a OK status with the session ID and creation date and time.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    default: true
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        $ref: '#/components/schemas/ArcadeSession/properties/id'
+                      slackId:
+                        $ref: '#/components/schemas/ArcadeSession/properties/slackId'
+                      createdAt:
+                        $ref: '#/components/schemas/ArcadeSession/properties/createdAt'
+        401:
+          description: "API token is missing"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schema/ApiErrorMessage"
+        404:
+          description: "User not found"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schema/ApiErrorMessage"
   /ping:
     get:
       tags: ["meta"]
-      description: "Pings the server for uptime"
+      operationId: ping
+      summary: "Pings the server for uptime"
+      description: "Should response with 200 with the word `pong`, otherwise the backend is probably experiencing issues."
       responses:
         200:
           description: "The service is up and running."
@@ -191,8 +335,9 @@ paths:
                 default: "Pong" 
   /status:
     get:
+      operationId: backendStatus
       tags: ["meta"]
-      description: "Get specific details on the status of the Hack Hour bot."
+      summary: "Get specific details on the status of the Hack Hour bot."
       responses:
         200:
           description: "Shows active sections, alongside connectivity status of the backend to Slack and Airtable APIs."
