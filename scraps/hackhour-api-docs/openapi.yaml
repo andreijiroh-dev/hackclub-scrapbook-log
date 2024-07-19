@@ -7,6 +7,8 @@ info:
 
     ## Important note about API usage
 
+    _This section is copied from upstream's README for brevity._
+
     There is no guarantee for the reliability of the API. If data is lost and/or is not registered for Arcade, there's not much we can do - use at your own risk.
 
     ## Getting your API token
@@ -24,25 +26,36 @@ externalDocs:
   description: Learn more about Hack Club Arcade
   url: https://hackclub.com/arcade
 servers:
-  - url: "https://hackhour.hackclub.com"
+  - url: "https://hackhour.hackclub.com/api"
 tags:
 - name: sessions
   description: Operations relating to viewing and managing your Arcade sessions over API.
 - name: meta
-  description: 
+  description: "Operations relating to "
 components:
   securitySchemes:
     hackHourApiToken:
-      type: apiKey
-      in: "header"
-      name: stuff
+      type: http
+      scheme: bearer
+      description: "Hack Hour API Token (UUID format)"
   schemas:
+    # Standarized metadatas
+    ArcadeGoal:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Name of the goal, usually long-running projects over the course of summer/winter.
+          default: "No Goal"
+        minutes:
+          type: number
+          description: "Number of minutes spent working on particular project"
     ArcadeSession:
       type: object
       properties:
         id:
           type: string
-          examples: ["slackId"]
+          default: "slackId"
         createdAt:
           type: string
           format: "date-time"
@@ -59,13 +72,14 @@ components:
           type: string
           format: "date-time"
         goal:
+          $ref: '#/components/schemas/ArcadeGoal/properties/name'
+        work:
           type: string
-          default: "No Goal"
         paused:
-          type: string
+          type: boolean
           default: true
         completed:
-          type: string
+          type: boolean
           default: false
         messageTs:
           type: string
@@ -79,9 +93,40 @@ components:
         total:
           type: number
           default: 0
+    # API responses
+    ArcadeSessions:
+      type: array
+      items:
+        type: object
+        properties:
+          $ref: "#/components/schemas/ArcadeSession/properties"
+    ArcadeGoals:
+      type: array
+      items:
+        type: object
+        properties:
+            name:
+              $ref: '#/components/schemas/ArcadeGoal/properties/name'
+            minutes:
+              $ref: '#/components/schemas/ArcadeGoal/properties/minutes'
+    BackendStatus:
+      type: object
+      properties:
+        activeSessions:
+          type: number
+          description: Number of active sessions at the moment.
+        airtableConnected:
+          type: boolean
+          default: true
+        slackConnected:
+          type: boolean
+          default: true
 paths:
-  /api/session/{slackId}:
+  /session/{slackId}:
     get:
+      security:
+        - hackHourApiToken: []
+      tags: ["sessions"]
       summary: Get current session of a Arcade participant
       description: Queries a user's current session at the moment by their Slack user ID.
       operationId: getCurrentSessionByUserid
@@ -105,8 +150,11 @@ paths:
                     default: true
                   data:
                     $ref: '#/components/schemas/ArcadeSession'
-  /api/stats/{slackId}:
+  /stats/{slackId}:
     get:
+      tags: ["sessions"]
+      security:
+        - hackHourApiToken: []
       summary: "Get stats for a Slack user"
       operationId: getStatsByUserid
       parameters:
@@ -129,3 +177,26 @@ paths:
                     default: true
                   data:
                     $ref: "#/components/schemas/ArcadeStats"
+  /ping:
+    get:
+      tags: ["meta"]
+      description: "Pings the server for uptime"
+      responses:
+        200:
+          description: "The service is up and running."
+          content:
+            text/plain:
+              schema:
+                type: string
+                default: "Pong" 
+  /status:
+    get:
+      tags: ["meta"]
+      description: "Get specific details on the status of the Hack Hour bot."
+      responses:
+        200:
+          description: "Shows active sections, alongside connectivity status of the backend to Slack and Airtable APIs."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BackendStatus"
