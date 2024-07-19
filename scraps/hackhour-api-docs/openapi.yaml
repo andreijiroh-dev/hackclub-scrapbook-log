@@ -1,0 +1,131 @@
+openapi: "3.1.0"
+info:
+  title: Hack Hour API
+  version: 1.0.0
+  description: |-
+    This is an unofficial API docs behind [Heidi the Hakkuun](https://github.com/hackclub/hack-hour), the Hack Club Slack bot that runs the `#arcade` channel for Summer of Making 2024 edition, built as part of Arcade 2024.
+
+    ## Important note about API usage
+
+    There is no guarantee for the reliability of the API. If data is lost and/or is not registered for Arcade, there's not much we can do - use at your own risk.
+
+    ## Getting your API token
+
+    In any Hack Club channel, especially on `#arcade`, send `/api` to get (or rotate) your API token. The token is formatted like a UUID.
+  contact:
+    name: Andrei Jiroh Halili
+    url: https://scrapbook.hackclub.com/andreijiroh-dev
+    email: ajhalili2006@andreijiroh.xyz
+  termsOfService: "https://hackclub.com/conduct"
+  license:
+    name: ISC
+    url: "https://choosealicense.com/licenses/isc/"
+externalDocs:
+  description: Learn more about Hack Club Arcade
+  url: https://hackclub.com/arcade
+servers:
+  - url: "https://hackhour.hackclub.com"
+tags:
+- name: sessions
+  description: Operations relating to viewing and managing your Arcade sessions over API.
+- name: meta
+  description: 
+components:
+  securitySchemes:
+    hackHourApiToken:
+      type: apiKey
+      in: "header"
+      name: stuff
+  schemas:
+    ArcadeSession:
+      type: object
+      properties:
+        id:
+          type: string
+          examples: ["slackId"]
+        createdAt:
+          type: string
+          format: "date-time"
+        time:
+          type: number
+          default: 60
+        elapsed:
+          type: number
+          default: 15
+        remaining:
+          type: number
+          default: 45
+        endTime:
+          type: string
+          format: "date-time"
+        goal:
+          type: string
+          default: "No Goal"
+        paused:
+          type: string
+          default: true
+        completed:
+          type: string
+          default: false
+        messageTs:
+          type: string
+          default: "todo"
+    ArcadeStats:
+      type: object
+      properties:
+        sessions:
+          type: number
+          default: 0
+        total:
+          type: number
+          default: 0
+paths:
+  /api/session/{slackId}:
+    get:
+      summary: Get current session of a Arcade participant
+      description: Queries a user's current session at the moment by their Slack user ID.
+      operationId: getCurrentSessionByUserid
+      parameters:
+        - name: slackId
+          in: path
+          description: "Slack user ID"
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Return a object of `ArcadeSession` in the `data` 
+          content: 
+            application/json: 
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    default: true
+                  data:
+                    $ref: '#/components/schemas/ArcadeSession'
+  /api/stats/{slackId}:
+    get:
+      summary: "Get stats for a Slack user"
+      operationId: getStatsByUserid
+      parameters:
+        - name: slackId
+          in: path
+          description: "Slack user ID"
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Return a object of `ArcadeSession` in the `data` 
+          content: 
+            application/json: 
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    default: true
+                  data:
+                    $ref: "#/components/schemas/ArcadeStats"
