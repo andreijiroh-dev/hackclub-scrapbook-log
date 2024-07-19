@@ -1,7 +1,9 @@
+# yaml-language-server: $schema=https://github.com/OAI/OpenAPI-Specification/raw/main/schemas/v3.1/schema.yaml
 openapi: "3.1.0"
 info:
   title: Hack Hour API
   version: 3.0.0
+  summary: Manage sessions and check the availability of Hakkuun Slack bot through the Hack Hour API.
   description: |-
     This is an unofficial API docs behind [Heidi the Hakkuun](https://github.com/hackclub/hack-hour),
     the Hack Club Slack bot that runs the `#arcade` channel for Summer of Making 2024 edition, built as part of Arcade 2024.
@@ -15,6 +17,16 @@ info:
 
     ## Using the API
 
+    ### API Terms
+
+    _This is unofficial text based off [this thread](https://hackclub.slack.com/archives/C077TSWKER0/p1721392147965059?thread_ts=1721369645.952189&cid=C077TSWKER0), and [patches are welcome](https://github.com/andreijiroh-dev/hackclub-scrapbook-log/blob/main/CONTRIBUTING.md) to improve this._
+
+    By using the Hack Hour API, you agree that:
+
+    * You must abide by Hack Club Code of Conduct, linked in the terms of service below.
+    * You must not make leaderboards off scraping the API. (try searching for `leaderboard in:#arcade-lounge in:#arcade-help` in Hack Club Slack for context)
+    * Regarding the API reliability and the service during the course of summer/winter season, you should not burst-sending API requests and call at most one request per second (or minute once degraded performance or downtime is hapening or intermittent).
+
     ### Getting an API token
 
     In any Hack Club channel, especially on `#arcade`, send `/api` to get (or rotate) your Hack Club API token. The token is formatted like a
@@ -27,14 +39,14 @@ info:
     * **Desktop and Web**: Go to your profile, click the options icon (three dots)
     and select `Copy member ID`
     * **Mobile**: Send a message in [`#what-is-my-slack-id`](https://hackclub.slack.com/archives/C0159TSJVH8) channel and you should receive a
-    automated reply with your Slack user ID.
+    automated reply with your Slack user ID. Alternatively, [open this Slack message](https://hackclub.slack.com/archives/C0159TSJVH8/p1721386824641699?thread_ts=1721386824.641699&cid=C0159TSJVH8) and run the linked workflow to get your Slack ID.
   contact:
     name: Andrei Jiroh Halili
     url: https://scrapbook.hackclub.com/andreijiroh-dev
     email: ajhalili2006@andreijiroh.xyz
   termsOfService: "https://hackclub.com/conduct"
   license:
-    name: ISC
+    name: "ISC (based off upstream repository's manifest file)"
     url: "https://choosealicense.com/licenses/isc/"
 externalDocs:
   description: Learn more about Hack Club Arcade
@@ -42,13 +54,13 @@ externalDocs:
 servers:
   - url: "https://hackhour.hackclub.com"
 tags:
-- name: sessions
-  description: Operations relating to viewing and managing your Arcade sessions over API.
-  externalDocs: 
-    description: Read the constitution
-    url: "https://github.com/hackclub/arcade-constitution/blob/main/README.md"
-- name: meta
-  description: "Operations relating to "
+  - name: sessions
+    description: Operations relating to viewing and managing your Arcade sessions over API.
+    externalDocs:
+      description: Read the constitution
+      url: "https://github.com/hackclub/arcade-constitution/blob/main/README.md"
+  - name: meta
+    description: "Operations relating to "
 components:
   securitySchemes:
     hackHourApiToken:
@@ -73,6 +85,7 @@ components:
         id:
           type: string
           default: "slackId"
+          description: "Slack user ID of the user"
         createdAt:
           type: string
           format: "date-time"
@@ -89,7 +102,7 @@ components:
           type: string
           format: "date-time"
         goal:
-          $ref: '#/components/schemas/ArcadeGoal/properties/name'
+          $ref: "#/components/schemas/ArcadeGoal/properties/name"
         work:
           type: string
           description: What the user is working on
@@ -114,17 +127,28 @@ components:
       type: array
       items:
         type: object
-        schemas:
-          $ref: "#/components/schemas/ArcadeSession/properties"
+        properties:
+          createdAt:
+            $ref: "#/components/schemas/ArcadeSession/properties/createdAt"
+          time:
+            $ref: "#/components/schemas/ArcadeSession/properties/time"
+          elapsed:
+            $ref: "#/components/schemas/ArcadeSession/properties/elapsed"
+          goal:
+            $ref: "#/components/schemas/ArcadeSession/properties/goal"
+          ended:
+            $ref: "#/components/schemas/ArcadeSession/properties/ended"
+          work:
+            $ref: "#/components/schemas/ArcadeSession/properties/work"
     ArcadeGoals:
       type: array
       items:
         type: object
         properties:
-            name:
-              $ref: '#/components/schemas/ArcadeGoal/properties/name'
-            minutes:
-              $ref: '#/components/schemas/ArcadeGoal/properties/minutes'
+          name:
+            $ref: "#/components/schemas/ArcadeGoal/properties/name"
+          minutes:
+            $ref: "#/components/schemas/ArcadeGoal/properties/minutes"
     BackendStatus:
       type: object
       properties:
@@ -164,9 +188,9 @@ paths:
             type: string
       responses:
         200:
-          description: Return a object of `ArcadeSession` in the `data` 
-          content: 
-            application/json: 
+          description: Return a object of `ArcadeSession` in the `data`
+          content:
+            application/json:
               schema:
                 type: object
                 properties:
@@ -174,7 +198,7 @@ paths:
                     type: boolean
                     default: true
                   data:
-                    $ref: '#/components/schemas/ArcadeSession'
+                    $ref: "#/components/schemas/ArcadeSession"
         401:
           description: "API token is missing"
           content:
@@ -203,9 +227,9 @@ paths:
             type: string
       responses:
         200:
-          description: Return a object of `ArcadeSession` in the `data` 
-          content: 
-            application/json: 
+          description: Return a object of `ArcadeSession` in the `data`
+          content:
+            application/json:
               schema:
                 type: object
                 properties:
@@ -238,7 +262,7 @@ paths:
           description: "Slack user ID"
           required: true
           schema:
-            type: string
+            $id: "#/components/schemas/ArcadeSession/properties/id"
       security:
         - hackHourApiToken: []
       responses:
@@ -266,6 +290,35 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schema/ApiErrorMessage"
+  /api/history/{slackId}:
+    get:
+      operationId: getSessionHistory
+      tags: ["sessions"]
+      summary: Get history of Arcade sessions for the user
+      parameters:
+        - name: slackId
+          in: path
+          description: "Slack user ID"
+          required: true
+          schema:
+            $ref: "#/components/schemas/ArcadeSession/properties/id"
+      security:
+        - hackHourApiToken: []
+      responses:
+        200:
+          description: "Returns a list of Arcade sessions"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    default: true
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ArcadeSessions/properties/items"
   /api/start/{slackId}:
     post:
       operationId: startArcadeSession
@@ -277,7 +330,9 @@ paths:
           description: "Slack user ID"
           required: true
           schema:
-            type: string
+            $id: "#/components/schemas/ArcadeSession/properties/id"
+      security:
+        - hackHourApiToken: []
       requestBody:
         content:
           application/json:
@@ -302,11 +357,56 @@ paths:
                     type: object
                     properties:
                       id:
-                        $ref: '#/components/schemas/ArcadeSession/properties/id'
+                        $ref: "#/components/schemas/ArcadeSession/properties/id"
                       slackId:
-                        $ref: '#/components/schemas/ArcadeSession/properties/slackId'
+                        $ref: "#/components/schemas/ArcadeSession/properties/slackId"
                       createdAt:
-                        $ref: '#/components/schemas/ArcadeSession/properties/createdAt'
+                        $ref: "#/components/schemas/ArcadeSession/properties/createdAt"
+        401:
+          description: "API token is missing"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schema/ApiErrorMessage"
+        404:
+          description: "User not found"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schema/ApiErrorMessage"
+  /api/pause/{slackId}:
+    post:
+      tags: ["sessions"]
+      operationId: pauseOrResumeSession
+      summary: Pause or resume current session
+      description: Pauses or resumes the current session for the user, depending on the current state.
+      parameters:
+        - name: slackId
+          in: path
+          required: true
+          description: "Slack user ID"
+          schema:
+            $id: "#/components/schemas/ArcadeSession/properties/id"
+      responses:
+        200:
+          description: Returns a OK status with the session ID and creation date and time.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    default: true
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        $ref: "#/components/schemas/ArcadeSession/properties/id"
+                      slackId:
+                        $ref: "#/components/schemas/ArcadeSession/properties/slackId"
+                      createdAt:
+                        $ref: "#/components/schemas/ArcadeSession/properties/createdAt"
         401:
           description: "API token is missing"
           content:
@@ -332,7 +432,7 @@ paths:
             text/plain:
               schema:
                 type: string
-                default: "Pong" 
+                default: "Pong"
   /status:
     get:
       operationId: backendStatus
